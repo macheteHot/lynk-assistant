@@ -104,13 +104,30 @@ delete()   /appInfo 走 delete(table, null, null) —— 无 _id 会清空整表
 
 ## 安装
 
+**这台车机的 adbd 会过滤命令里的 `install` 字样**（吉利/领克防篡改），而且不支持流式安装，
+所以 `adb install` 会失败（`error: closed`）。用仓库里的脚本，它内部已经拆分了关键字：
+
 ```sh
-adb install -r lynk-assistant.apk
+./install-apk.sh                  # 用 ./lynk-assistant.apk，默认 -r -t
+./install-apk.sh -b               # 先构建再安装
+./install-apk.sh -g lynk-assistant.apk
+./install-apk.sh -u <包名>        # 卸载（同样拆分 un+install）
+./install-apk.sh -s <序列号> ...  # 多台设备时指定
+./install-apk.sh --list           # 列出设备
+./install-apk.sh -h               # 全部选项
 ```
 
-也可以把 APK 拷到 U 盘，用文件管理器安装。
+等价的手动两步（脚本就是这么做的）：
 
-装好后出现在「我的应用」里，如果没有，用应用内的功能③把**领克助手自己**也写进去。
+```sh
+adb push lynk-assistant.apk /data/local/tmp/
+adb shell 'a=in; b=stall; pm ${a}${b} -r -t /data/local/tmp/lynk-assistant.apk'
+```
+
+也可以把 APK 拷到 U 盘或 `Download` 目录，用应用里的 **⑥ 安装 APK** 装（同样走系统安装器）。
+
+装好后桌面「我的应用」默认**看不到**它（白名单驱动），用功能③把**领克助手自己**也写进去，
+然后重启车机。
 
 ## 构建
 
@@ -134,6 +151,7 @@ python3 make_icons.py
 ```
 AndroidManifest.xml
 build.sh
+install-apk.sh          车机安装/卸载脚本（拆分 install 关键字绕过 adbd 过滤）
 make_icons.py
 res/values/strings.xml
 res/mipmap-*/ic_launcher.png
