@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.github.machetehot.lynkassistant"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="31" />
+
+    <!-- enumerate every installed app -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
+    <!--
+      The Geely/OneOS app-store provider permission is protectionLevel=normal
+      (verified in OneOS-AppStore.apk), so declaring it is enough to be
+      granted. This is what allows registering ANY package into the launcher's
+      "My Apps" list.
+    -->
+    <uses-permission android:name="com.geely.appstore.APPSTORE_PROVIDER" />
+
+    <queries>
+        <package android:name="com.desaysv.engmode" />
+        <package android:name="com.desaysv.engmode.custom" />
+        <package android:name="com.desaysv.vehicle.carplayapp" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:supportsRtl="false"
+        android:theme="@android:style/Theme.DeviceDefault.Light">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".AppListActivity"
+            android:exported="false"
+            android:label="@string/app_list_title" />
+
+        <activity
+            android:name=".DeviceInfoActivity"
+            android:exported="false"
+            android:label="@string/device_info_title" />
+    </application>
+</manifest>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">领克助手</string>
+    <string name="app_list_title">桌面应用列表</string>
+    <string name="device_info_title">设备信息</string>
+</resources>

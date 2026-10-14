@@ -1,0 +1,17 @@
+# build output
+build/
+*.apk
+*.aab
+*.idsig
+
+# signing material — never commit
+*.jks
+*.keystore
+*.pk8
+*.p12
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
