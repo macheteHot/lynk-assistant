@@ -144,6 +144,20 @@ public class MainActivity extends Activity {
             }
         });
 
+        addButton("⑥ 安装 APK", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, ApkInstallActivity.class));
+            }
+        });
+
+        addButton("⑦ 应用管理（卸载 / 禁用）", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, AppManagerActivity.class));
+            }
+        });
+
         log = new TextView(this);
         log.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         log.setTextIsSelectable(true);

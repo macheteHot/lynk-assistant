@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.machetehot.lynkassistant"
-    android:versionCode="1"
-    android:versionName="1.0">
+    android:versionCode="2"
+    android:versionName="1.1">
 
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="31" />
 
@@ -16,6 +16,19 @@
       "My Apps" list.
     -->
     <uses-permission android:name="com.geely.appstore.APPSTORE_PROVIDER" />
+
+    <!--
+      Installing: the APK is handed to the system package installer, which needs
+      the requesting app to be allowed in "install unknown apps"
+      (REQUEST_INSTALL_PACKAGES is signature|appop on this head unit).
+      Uninstalling: REQUEST_DELETE_PACKAGES is normal; ACTION_DELETE shows the
+      system confirmation UI, so no privileged permission is involved.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <queries>
         <package android:name="com.desaysv.engmode" />
@@ -54,5 +67,22 @@
             android:name=".DeviceInfoActivity"
             android:exported="false"
             android:label="@string/device_info_title" />
+
+        <activity
+            android:name=".ApkInstallActivity"
+            android:exported="false"
+            android:label="@string/install_title" />
+
+        <activity
+            android:name=".AppManagerActivity"
+            android:exported="false"
+            android:label="@string/app_manager_title" />
+
+        <!-- serves the copied APK to the system installer as content:// -->
+        <provider
+            android:name=".ApkFileProvider"
+            android:authorities="io.github.machetehot.lynkassistant.files"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>

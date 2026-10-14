@@ -21,9 +21,38 @@
 | ③ 桌面应用列表管理 | 列出所有已安装应用，选中即写入桌面「我的应用」；可批量写入；可按 `_id` 单条删除 |
 | ④ 设备信息 | `Build` + 车机系统属性（VIN、序列号、版本、ADB 开关…），可一键复制 |
 | ⑤ 打开系统设置 | 快捷入口 |
+| ⑥ 安装 APK | 扫描本机/U 盘 APK 列表，或从文件选择器挑；交给系统安装器完成（用户确认） |
+| ⑦ 应用管理 | 卸载、应用详情、启用/禁用尝试、从桌面记录移除、复制 adb 命令 |
 
 **写入后需要重启车机生效**，应用会弹窗提示。车机可以用硬件按键强制重启
 （不同车型组合不同，常见为长按电源键或音量键组合）。
+
+---
+
+## 安装 / 卸载 / 禁用能做到什么程度
+
+对着本车机的 `framework-res.apk` 实测的权限级别：
+
+| 权限 | protectionLevel | 结果 |
+| --- | --- | --- |
+| `REQUEST_DELETE_PACKAGES` | `0x00` normal | ✅ 可用 |
+| `REQUEST_INSTALL_PACKAGES` | `0x42` signature\|appop | ⚠️ 走系统安装器 + 用户开关可用 |
+| `INSTALL_PACKAGES`（静默装） | `0x12` signature\|privileged | ❌ 拿不到 |
+| `DELETE_PACKAGES`（静默卸） | `0x12` signature\|privileged | ❌ 拿不到 |
+| `CHANGE_COMPONENT_ENABLED_STATE`（禁用） | `0x12` signature\|privileged | ❌ 拿不到 |
+
+所以：
+
+- **安装**：把 APK 复制到应用私有目录，用自带的最小 `ContentProvider` 以
+  `content://` 交给系统安装器（Android 7+ 禁止 `file://` 跨进程，而 FileProvider
+  在 androidx 里，本项目不依赖 androidx）。没有「安装未知应用」开关时会先跳到系统设置。
+  静默安装做不到。
+- **卸载**：`ACTION_DELETE` + `package:`，由系统弹出确认界面，不需要特权。
+- **禁用**：普通应用**做不到**。代码里保留了调用路径（万一以系统签名构建就能用），
+  被拒时会弹出说明并把可直接执行的 adb 命令复制到剪贴板：
+  `adb shell pm disable-user --user 0 <包名>`。
+- **近似「隐藏」**：功能③的「从桌面记录移除」可以把这个应用从桌面「我的应用」里拿掉
+  （只删车机商店记录，不卸载应用）。
 
 ---
 
@@ -113,12 +142,21 @@ java/io/github/machetehot/lynkassistant/
     AppListActivity.java     桌面应用列表管理（含重启提示）
     AppStoreBridge.java      商店 provider 读写封装
     DeviceInfoActivity.java  设备信息（只读）
+    ApkInstallActivity.java  APK 扫描 / 选择 / 安装
+    ApkFileProvider.java     最小 ContentProvider（把 APK 交给系统安装器）
+    AppManagerActivity.java  卸载 / 禁用尝试 / 应用详情 / 桌面记录移除
 ```
 
 ## 已知限制
 
 - 写入 / 删除后**需要重启车机**才在桌面生效，普通应用没权限重启桌面；
 - 应用商店同步/刷新可能清理 `t_app_info` 记录，届时重新写入即可；
+- **安装不是静默的**：必须由系统安装器弹窗确认，且首次要在系统设置里允许本应用
+  「安装未知应用」；静默安装需要系统签名；
+- **禁用应用做不到**：`CHANGE_COMPONENT_ENABLED_STATE` 是 signature|privileged，
+  只能给出 adb 命令自己执行；
+- 卸载系统应用会被系统拒绝（普通应用只能删用户应用的数据/卸载用户应用）；
+- 扫描 U 盘依赖该目录对本应用可读，部分车机 `/mnt/media_rw/*` 仅 root 可读；
 - 工程模式由车机厂商提供，本工具只负责拉起；不同车型的工程模式包名可能不同；
 - 不同车机固件的系统属性、桌面实现可能不同，功能③依赖 Geely/OneOS 的商店 provider。
 

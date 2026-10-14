@@ -36,8 +36,8 @@ echo "== aapt2 (compile + link, emits R.java) =="
     -R "$OUT/res.zip" \
     --auto-add-overlay \
     --java "$OUT/gen" \
-    --min-sdk-version 21 --target-sdk-version 31 \
-    --version-code 1 --version-name 1.0
+    --min-sdk-version 21 --target-sdk-version 31
+# versionCode / versionName come from AndroidManifest.xml (single source of truth)
 
 echo "== javac =="
 "$JAVAC" --release 11 -classpath "$ANDROID_JAR" -encoding UTF-8 \
