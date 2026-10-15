@@ -12,8 +12,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.geely.lynkassistant"
-    android:versionCode="2"
-    android:versionName="1.1">
+    android:versionCode="3"
+    android:versionName="1.2">
 
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="31" />
 
@@ -89,11 +89,55 @@
             android:exported="false"
             android:label="@string/app_manager_title" />
 
+        <activity
+            android:name=".WidgetCardActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:label="@string/widget_card_title" />
+
         <!-- serves the copied APK to the system installer as content:// -->
         <provider
             android:name=".ApkFileProvider"
             android:authorities="com.geely.lynkassistant.files"
             android:exported="false"
             android:grantUriPermissions="true" />
+
+        <!-- 桌面卡片：6 个槽位，各显示一个应用的图标，点击拉起 -->
+        <receiver android:name=".CardWidget1" android:exported="true" android:label="@string/card1">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/card_widget_info" />
+        </receiver>
+        <receiver android:name=".CardWidget2" android:exported="true" android:label="@string/card2">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/card_widget_info" />
+        </receiver>
+        <receiver android:name=".CardWidget3" android:exported="true" android:label="@string/card3">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/card_widget_info" />
+        </receiver>
+        <receiver android:name=".CardWidget4" android:exported="true" android:label="@string/card4">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/card_widget_info" />
+        </receiver>
+        <receiver android:name=".CardWidget5" android:exported="true" android:label="@string/card5">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/card_widget_info" />
+        </receiver>
+        <receiver android:name=".CardWidget6" android:exported="true" android:label="@string/card6">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/card_widget_info" />
+        </receiver>
     </application>
 </manifest>

@@ -147,6 +147,12 @@ public class MainActivity extends Activity {
                 startActivity(new Intent(MainActivity.this, AppManagerActivity.class));
             }
         });
+        menu(left, "⑧ 添加桌面组件（选一个 app 做成卡片）", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, WidgetCardActivity.class));
+            }
+        });
 
         scanBox = new LinearLayout(this);
         scanBox.setOrientation(LinearLayout.VERTICAL);

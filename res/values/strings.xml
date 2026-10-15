@@ -5,4 +5,12 @@
     <string name="device_info_title">设备信息</string>
     <string name="install_title">安装 APK</string>
     <string name="app_manager_title">应用管理</string>
+    <string name="widget_card_title">添加桌面组件</string>
+    <string name="card_widget_desc">领克助手卡片 · 显示并打开选中的应用</string>
+    <string name="card1">领克助手 · 卡片1</string>
+    <string name="card2">领克助手 · 卡片2</string>
+    <string name="card3">领克助手 · 卡片3</string>
+    <string name="card4">领克助手 · 卡片4</string>
+    <string name="card5">领克助手 · 卡片5</string>
+    <string name="card6">领克助手 · 卡片6</string>
 </resources>

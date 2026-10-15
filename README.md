@@ -23,6 +23,7 @@
 | ⑤ 打开系统设置 | 快捷入口 |
 | ⑥ 安装 APK | 扫描本机/U 盘 APK 列表，或从文件选择器挑；交给系统安装器完成（用户确认） |
 | ⑦ 应用管理 | 卸载、应用详情、启用/禁用尝试、从桌面记录移除、复制 adb 命令 |
+| ⑧ 添加桌面组件 | 给 6 个卡片槽位各选一个应用，桌面「添加卡片」里生成「领克助手 · 卡片N」，卡片只显示该应用图标、点击直接打开 |
 
 **写入后需要重启车机生效**，应用会弹窗提示。车机可以用硬件按键强制重启
 （不同车型组合不同，常见为长按电源键或音量键组合）。
@@ -164,8 +165,38 @@ java/com/geely/lynkassistant/
     ApkInstallActivity.java  APK 扫描 / 选择 / 安装
     ApkFileProvider.java     最小 ContentProvider（把 APK 交给系统安装器）
     AppManagerActivity.java  卸载 / 禁用尝试 / 应用详情 / 桌面记录移除
+    WidgetCardActivity.java  添加桌面组件（6 个槽位选应用）
+    CardStore.java           槽位 → 目标应用
+    BaseCardWidget.java      桌面卡片基类（画图标 + 点击拉起）
+    CardWidget1..6.java      6 个卡片 provider，各占桌面「添加卡片」一项
     Ui.java                  深色 UI 组件（分栏 / 返回键 / 卡片）
 ```
+
+## 桌面卡片（⑧）
+
+给 6 个槽位各选一个应用，桌面长按 → **添加卡片** 里就会出现
+「领克助手 · 卡片 1..6」，摆上桌面后卡片只显示该应用的图标，点一下直接打开。
+图标是运行时从 `PackageManager` 取的（`getApplicationIcon`），转成 Bitmap 后
+用 `RemoteViews.setImageViewBitmap` 交给桌面渲染（控制在 256px 以内，避免
+RemoteViews 的 1MB binder 限制）。
+
+**为什么它能出现在「添加卡片」列表**：桌面（`com.android.launcher3`）的小组件过滤
+`BaseWidgetVm.isNeedWidget()` 有一条兜底分支：
+
+```java
+(displayType == 0) && packageName.startsWith("com.geely")
+// 即：主屏组件只要包名以 com.geely 开头即通过
+```
+
+实测对照（同一份代码，只改包名）：
+
+| 包名 | 结果 |
+| --- | --- |
+| `com.geely.lynkcard`（普通类名） | ✅ 出现在「添加卡片」 |
+| `io.github.machetehot.lynkassistant` | ❌ 不出现 |
+
+所以本应用的 **applicationId 定为 `com.geely.lynkassistant`**（Java 包名同名）。
+这不是官方安装渠道，属于借用厂商命名空间取巧，**固件更新/主题覆盖后可能失效**。
 
 ## 已知限制
 
