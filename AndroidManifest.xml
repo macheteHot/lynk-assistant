@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  关于 applicationId：为什么是 com.geely.lynkassistant
+  ==========================================================================
+  车机桌面（OneOS-Launcher3）的小组件过滤 BaseWidgetVm.isNeedWidget() 里有一条
+  兜底分支：
+        (displayType == 0) && packageName.startsWith("com.geely")
+  即「主屏组件只要包名以 com.geely 开头即通过」。实测：
+    - com.geely.lynkcard（普通类名）        -> 桌面「添加卡片」列表可见
+    - io.github.machetehot.lynkassistant（同类名）-> 不可见
+  所以 applicationId 定为 com.geely.lynkassistant；Java 包名同名。
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.github.machetehot.lynkassistant"
+    package="com.geely.lynkassistant"
     android:versionCode="2"
     android:versionName="1.1">
 
@@ -81,7 +92,7 @@
         <!-- serves the copied APK to the system installer as content:// -->
         <provider
             android:name=".ApkFileProvider"
-            android:authorities="io.github.machetehot.lynkassistant.files"
+            android:authorities="com.geely.lynkassistant.files"
             android:exported="false"
             android:grantUriPermissions="true" />
     </application>

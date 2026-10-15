@@ -155,7 +155,7 @@ install-apk.sh          车机安装/卸载脚本（拆分 install 关键字绕�
 make_icons.py
 res/values/strings.xml
 res/mipmap-*/ic_launcher.png
-java/io/github/machetehot/lynkassistant/
+java/com/geely/lynkassistant/
     MainActivity.java        入口 + 工程模式 + 页面扫描
     AppListActivity.java     桌面应用列表管理（含重启提示）
     AppStoreBridge.java      商店 provider 读写封装

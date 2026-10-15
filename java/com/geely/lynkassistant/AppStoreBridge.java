@@ -1,4 +1,4 @@
-package io.github.machetehot.lynkassistant;
+package com.geely.lynkassistant;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;

@@ -1,4 +1,4 @@
-package io.github.machetehot.lynkassistant;
+package com.geely.lynkassistant;
 
 import android.app.Activity;
 import android.app.AlertDialog;

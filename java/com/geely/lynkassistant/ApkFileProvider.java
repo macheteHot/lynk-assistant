@@ -1,4 +1,4 @@
-package io.github.machetehot.lynkassistant;
+package com.geely.lynkassistant;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
@@ -24,7 +24,7 @@ import java.io.FileNotFoundException;
  */
 public class ApkFileProvider extends ContentProvider {
 
-    public static final String AUTHORITY = "io.github.machetehot.lynkassistant.files";
+    public static final String AUTHORITY = "com.geely.lynkassistant.files";
     private static final String DIR = "apk";
 
     /** Directory APKs are copied into before installing. */
