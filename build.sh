@@ -68,6 +68,6 @@ fi
 
 echo "== verify =="
 "$BT/apksigner" verify "$APP.apk" >/dev/null
-"$BT/aapt2" dump badging "$APP.apk" | head -8
+"$BT/aapt2" dump badging "$APP.apk" | sed -n '1,8p'   # sed, not head: head exits early -> SIGPIPE + pipefail
 ls -l "$APP.apk"
 echo "OK -> $HERE/$APP.apk"
