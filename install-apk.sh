@@ -27,7 +27,7 @@
 #   ./install-apk.sh                          # 用 ./lynk-assistant.apk，等价于 -r -t
 #   ./install-apk.sh -b                       # 先构建再安装
 #   ./install-apk.sh lynk-assistant.apk -g
-#   ./install-apk.sh -u io.github.machetehot.lynkassistant
+#   ./install-apk.sh -u com.geely.lynkassistant
 #   ./install-apk.sh -s 1234567890 other.apk
 # ------------------------------------------------------------------
 set -euo pipefail
