@@ -4,16 +4,11 @@ import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,6 +21,8 @@ import java.lang.reflect.Method;
  * {@code android.os.SystemProperties}, which is a hidden API; it is read
  * through reflection and every read is fail-soft so a blocked read just shows
  * "读取失败" instead of crashing.
+ *
+ * <p>UI: left column = standard Build fields, right column = vehicle properties.
  */
 public class DeviceInfoActivity extends Activity {
 
@@ -46,50 +43,58 @@ public class DeviceInfoActivity extends Activity {
             {"区域", "persist.sys.locale"},
     };
 
-    private TextView body;
+    private String standardText;
+    private String vehicleText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTitle(getString(R.string.device_info_title));
 
-        ScrollView scroll = new ScrollView(this);
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        root.setPadding(pad, pad, pad, pad);
-        scroll.addView(root, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        setContentView(scroll);
+        Ui.Screen sc = Ui.create(this, getString(R.string.device_info_title), 1f, 1f);
+        setContentView(sc.root);
+        LinearLayout left = sc.left.body;
+        LinearLayout right = sc.right.body;
 
-        Button copy = new Button(this);
-        copy.setText("复制全部");
-        copy.setAllCaps(false);
-        copy.setOnClickListener(new View.OnClickListener() {
+        standardText = buildStandard();
+        vehicleText = buildVehicle();
+
+        left.addView(Ui.label(this, "标准 Build 信息"));
+        left.addView(Ui.primary(this, "复制全部", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ClipboardManager cm = (ClipboardManager)
-                        getSystemService(Context.CLIPBOARD_SERVICE);
-                if (cm != null) {
-                    cm.setPrimaryClip(ClipData.newPlainText("device-info", body.getText()));
-                    toast("已复制");
-                }
+                copyAll();
             }
-        });
-        root.addView(copy);
+        }));
+        left.addView(Ui.gap(this, 8));
+        LinearLayout leftCard = Ui.card(this);
+        TextView std = Ui.mono(this);
+        std.setText(standardText);
+        leftCard.addView(std);
+        left.addView(leftCard);
 
-        body = new TextView(this);
-        body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        body.setTextIsSelectable(true);
-        body.setPadding(0, dp(12), 0, 0);
-        root.addView(body);
+        right.addView(Ui.label(this, "车机系统属性"));
+        LinearLayout rightCard = Ui.card(this);
+        TextView veh = Ui.mono(this);
+        veh.setText(vehicleText);
+        rightCard.addView(veh);
+        right.addView(rightCard);
 
-        body.setText(buildReport());
+        right.addView(Ui.gap(this, 14));
+        right.addView(Ui.dim(this,
+                "注: 系统属性为只读展示；读取失败表示该机型不支持或受限。"));
     }
 
-    private String buildReport() {
+    private void copyAll() {
+        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cm != null) {
+            cm.setPrimaryClip(ClipData.newPlainText("device-info",
+                    standardText + "\n" + vehicleText));
+            toast("已复制");
+        }
+    }
+
+    private String buildStandard() {
         StringBuilder sb = new StringBuilder();
-        sb.append("== 标准 Build 信息 ==\n");
         sb.append("MANUFACTURER : ").append(Build.MANUFACTURER).append('\n');
         sb.append("BRAND        : ").append(Build.BRAND).append('\n');
         sb.append("MODEL        : ").append(Build.MODEL).append('\n');
@@ -99,14 +104,15 @@ public class DeviceInfoActivity extends Activity {
         sb.append("Android      : ").append(Build.VERSION.RELEASE)
                 .append(" (API ").append(Build.VERSION.SDK_INT).append(")\n");
         sb.append("TYPE/TAGS    : ").append(Build.TYPE).append(" / ").append(Build.TAGS).append('\n');
+        return sb.toString();
+    }
 
-        sb.append("\n== 车机系统属性 ==\n");
+    private String buildVehicle() {
+        StringBuilder sb = new StringBuilder();
         for (String[] p : PROPS) {
             String v = getProperty(p[1]);
             sb.append(pad(p[0])).append(" : ").append(v).append('\n');
         }
-
-        sb.append("\n注: 系统属性为只读展示；读取失败表示该机型不支持或受限。\n");
         return sb.toString();
     }
 
@@ -133,10 +139,5 @@ public class DeviceInfoActivity extends Activity {
 
     private void toast(String s) {
         Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
-    }
-
-    private int dp(int v) {
-        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v,
-                getResources().getDisplayMetrics()));
     }
 }

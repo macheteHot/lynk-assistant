@@ -6,15 +6,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +27,8 @@ import java.util.Set;
  * permission is normal-level and its {@code insert()} validates nothing, so any
  * installed app can be registered. A fixed package name would simply break the
  * moment the app is renamed or reinstalled.
+ *
+ * <p>UI: left column = apps not yet written, right column = existing records.
  */
 public class AppListActivity extends Activity {
 
@@ -44,7 +41,6 @@ public class AppListActivity extends Activity {
                     + "车机可以用硬件按键强制重启（不同车型组合不同，常见为长按电源键或"
                     + "音量键组合）。重启后新应用会出现在桌面「我的应用」里。";
 
-    private LinearLayout root;
     private TextView status;
     private LinearLayout pendingBox;
     private LinearLayout writtenBox;
@@ -52,60 +48,48 @@ public class AppListActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTitle(getString(R.string.app_list_title));
 
-        ScrollView scroll = new ScrollView(this);
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        root.setPadding(pad, pad, pad, pad);
-        scroll.addView(root, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        setContentView(scroll);
+        Ui.Screen sc = Ui.create(this, getString(R.string.app_list_title), 1f, 1.1f);
+        setContentView(sc.root);
+        LinearLayout left = sc.left.body;
+        LinearLayout right = sc.right.body;
 
-        TextView hint = new TextView(this);
-        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        hint.setPadding(0, 0, 0, dp(8));
-        hint.setText("写入后需要重启车机才会生效。");
-        root.addView(hint);
-
-        status = new TextView(this);
-        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        status.setTextIsSelectable(true);
-        root.addView(status);
-
-        row(
-                button("刷新", new View.OnClickListener() {
+        // ---- left: control + pending list ----
+        left.addView(Ui.label(this, "写入桌面"));
+        Ui.addPair(left,
+                Ui.ghost(this, "刷新", new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         refresh();
                     }
                 }),
-                button("写入全部未写入", new View.OnClickListener() {
+                Ui.primary(this, "写入全部未写入", new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         writeAllMissing();
                     }
                 }));
 
-        header("① 未写入桌面的应用（点 ＋ 加入）");
+        status = Ui.dim(this, "");
+        left.addView(status);
+        left.addView(Ui.gap(this, 10));
+        left.addView(Ui.label(this, "未写入桌面的应用（点 ＋ 加入）"));
         pendingBox = new LinearLayout(this);
         pendingBox.setOrientation(LinearLayout.VERTICAL);
-        root.addView(pendingBox);
+        left.addView(pendingBox);
 
-        header("② 已写入 t_app_info 的记录（按 _id 删除）");
+        // ---- right: existing records ----
+        right.addView(Ui.label(this, "已写入 t_app_info 的记录（按 _id 删除）"));
         writtenBox = new LinearLayout(this);
         writtenBox.setOrientation(LinearLayout.VERTICAL);
-        root.addView(writtenBox);
+        right.addView(writtenBox);
 
-        TextView note = new TextView(this);
-        note.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        note.setTextColor(Color.GRAY);
-        note.setPadding(0, dp(16), 0, 0);
-        note.setText("写入的是车机自带应用商店的数据库记录（t_app_info）。\n"
+        right.addView(Ui.gap(this, 14));
+        LinearLayout note = Ui.card(this);
+        note.addView(Ui.dim(this, "写入的是车机自带应用商店的数据库记录（t_app_info）。\n"
                 + "应用商店同步/刷新时可能清理这些记录，届时重新写入即可。\n"
-                + "删除只按 _id 单条删，绝不清空整表。");
-        root.addView(note);
+                + "删除只按 _id 单条删，绝不清空整表。"));
+        right.addView(note);
     }
 
     @Override
@@ -144,7 +128,8 @@ public class AppListActivity extends Activity {
                 continue;
             }
             pending++;
-            pendingBox.addView(button("＋ " + a.label + "   (" + a.pkg + ")",
+            Ui.addRow(pendingBox, Ui.row(this,
+                    "＋ " + a.label + "\n" + a.pkg,
                     new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -153,15 +138,15 @@ public class AppListActivity extends Activity {
                     }));
         }
         if (pending == 0) {
-            pendingBox.addView(body("（全部已写入）"));
+            pendingBox.addView(Ui.dim(this, "（全部已写入）"));
         }
 
         if (written.isEmpty()) {
-            writtenBox.addView(body("（暂无记录）"));
+            writtenBox.addView(Ui.dim(this, "（暂无记录）"));
         }
         for (final AppStoreBridge.Row r : written) {
-            writtenBox.addView(button(
-                    "删除 " + safe(r.apkName) + "   (" + safe(r.packageName) + ", _id=" + r.id + ")",
+            Ui.addRow(writtenBox, Ui.row(this,
+                    "删除  " + safe(r.apkName) + "\n" + safe(r.packageName) + "   _id=" + r.id,
                     new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -283,47 +268,7 @@ public class AppListActivity extends Activity {
         return TextUtils.isEmpty(s) ? "(空)" : s;
     }
 
-    private void header(String s) {
-        TextView tv = new TextView(this);
-        tv.setText(s);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        tv.setPadding(0, dp(16), 0, dp(6));
-        root.addView(tv);
-    }
-
-    private TextView body(String s) {
-        TextView tv = new TextView(this);
-        tv.setText(s);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        tv.setTextColor(Color.GRAY);
-        root.addView(tv);
-        return tv;
-    }
-
-    private Button button(String text, View.OnClickListener l) {
-        Button b = new Button(this);
-        b.setText(text);
-        b.setAllCaps(false);
-        b.setOnClickListener(l);
-        return b;
-    }
-
-    private void row(View... views) {
-        LinearLayout ll = new LinearLayout(this);
-        ll.setOrientation(LinearLayout.HORIZONTAL);
-        for (View v : views) {
-            ll.addView(v, new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        }
-        root.addView(ll);
-    }
-
     private void toast(String s) {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show();
-    }
-
-    private int dp(int v) {
-        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v,
-                getResources().getDisplayMetrics()));
     }
 }

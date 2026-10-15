@@ -57,7 +57,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:allowBackup="false"
         android:supportsRtl="false"
-        android:theme="@android:style/Theme.DeviceDefault.Light">
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
         <activity
             android:name=".MainActivity"

@@ -5,19 +5,13 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,6 +33,8 @@ import java.util.Set;
  * signature|privileged on this head unit. Instead the APK is copied into our
  * own cache and handed to the system package installer through a
  * {@code content://} URI — the user confirms the install in the system UI.
+ *
+ * <p>UI: left column = actions and notes, right column = scanned APK list.
  */
 public class ApkInstallActivity extends Activity {
 
@@ -46,69 +42,48 @@ public class ApkInstallActivity extends Activity {
     private static final int REQ_READ = 1002;
     private static final int MAX_SCAN = 200;
 
-    private LinearLayout root;
     private LinearLayout listBox;
     private TextView status;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTitle(getString(R.string.install_title));
 
-        ScrollView scroll = new ScrollView(this);
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        root.setPadding(pad, pad, pad, pad);
-        scroll.addView(root, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        setContentView(scroll);
+        Ui.Screen sc = Ui.create(this, getString(R.string.install_title), 1f, 1.5f);
+        setContentView(sc.root);
+        LinearLayout left = sc.left.body;
+        LinearLayout right = sc.right.body;
 
-        status = new TextView(this);
-        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        status.setTextIsSelectable(true);
-        root.addView(status);
-
-        Button pick = new Button(this);
-        pick.setText("选择 APK 文件…");
-        pick.setAllCaps(false);
-        pick.setOnClickListener(new View.OnClickListener() {
+        // ---- left: actions ----
+        left.addView(Ui.label(this, "操作"));
+        Ui.addRow(left, Ui.primary(this, "选择 APK 文件…", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 pickFile();
             }
-        });
-        root.addView(pick);
-
-        Button rescan = new Button(this);
-        rescan.setText("重新扫描本机 APK");
-        rescan.setAllCaps(false);
-        rescan.setOnClickListener(new View.OnClickListener() {
+        }));
+        Ui.addRow(left, Ui.ghost(this, "重新扫描本机 APK", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 scan();
             }
-        });
-        root.addView(rescan);
+        }));
 
-        TextView head = new TextView(this);
-        head.setText("本机找到的 APK（点一下安装）");
-        head.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        head.setPadding(0, dp(16), 0, dp(6));
-        root.addView(head);
+        status = Ui.dim(this, "");
+        left.addView(status);
 
+        left.addView(Ui.gap(this, 12));
+        LinearLayout note = Ui.card(this);
+        note.addView(Ui.dim(this, "安装由系统安装器完成，需要在弹窗里确认。\n"
+                + "若提示「不允许安装未知应用」，会先跳到系统设置里打开本应用的开关。\n"
+                + "静默安装需要系统签名，普通应用做不到。"));
+        left.addView(note);
+
+        // ---- right: found APKs ----
+        right.addView(Ui.label(this, "本机找到的 APK（点一下安装）"));
         listBox = new LinearLayout(this);
         listBox.setOrientation(LinearLayout.VERTICAL);
-        root.addView(listBox);
-
-        TextView note = new TextView(this);
-        note.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        note.setTextColor(Color.GRAY);
-        note.setPadding(0, dp(16), 0, 0);
-        note.setText("安装由系统安装器完成，需要在弹窗里确认。\n"
-                + "若提示「不允许安装未知应用」，会先跳到系统设置里打开本应用的开关。\n"
-                + "静默安装需要系统签名，普通应用做不到。");
-        root.addView(note);
+        right.addView(listBox);
 
         if (Build.VERSION.SDK_INT >= 23) {
             requestPermissions(new String[]{
@@ -140,7 +115,7 @@ public class ApkInstallActivity extends Activity {
             try {
                 startActivityForResult(any, REQ_PICK);
             } catch (Exception e2) {
-                toast("本机没有文件选择器，请用下面的扫描列表");
+                toast("本机没有文件选择器，请用右侧的扫描列表");
             }
         }
     }
@@ -272,24 +247,17 @@ public class ApkInstallActivity extends Activity {
     private void showFound(List<File> files) {
         status.setText("找到 " + files.size() + " 个 APK");
         if (files.isEmpty()) {
-            TextView t = new TextView(this);
-            t.setText("（没找到。可以把 APK 放到 U 盘或 Download 目录，再点重新扫描）");
-            t.setTextColor(Color.GRAY);
-            listBox.addView(t);
+            listBox.addView(Ui.dim(this,
+                    "（没找到。可以把 APK 放到 U 盘或 Download 目录，再点左边的重新扫描）"));
             return;
         }
         for (final File f : files) {
-            Button b = new Button(this);
-            b.setAllCaps(false);
-            b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-            b.setText(describe(f));
-            b.setOnClickListener(new View.OnClickListener() {
+            Ui.addRow(listBox, Ui.row(this, describe(f), new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     confirmInstall(f);
                 }
-            });
-            listBox.addView(b);
+            }));
         }
     }
 
@@ -399,10 +367,5 @@ public class ApkInstallActivity extends Activity {
 
     private void toast(String s) {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show();
-    }
-
-    private int dp(int v) {
-        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v,
-                getResources().getDisplayMetrics()));
     }
 }

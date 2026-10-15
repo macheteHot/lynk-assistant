@@ -9,21 +9,16 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,12 +39,13 @@ import java.util.List;
  *       kept so it works if the app is ever built as a privileged/system app,
  *       and the exact adb command is shown when it is denied.</li>
  * </ul>
+ *
+ * <p>UI: left column = filter + app list, right column = help.
  */
 public class AppManagerActivity extends Activity {
 
     private static final int MAX_ITEMS = 400;
 
-    private LinearLayout root;
     private LinearLayout listBox;
     private TextView status;
     private EditText search;
@@ -60,25 +56,24 @@ public class AppManagerActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTitle(getString(R.string.app_manager_title));
 
-        ScrollView scroll = new ScrollView(this);
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        root.setPadding(pad, pad, pad, pad);
-        scroll.addView(root, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        setContentView(scroll);
+        Ui.Screen sc = Ui.create(this, getString(R.string.app_manager_title), 1.35f, 1f);
+        setContentView(sc.root);
+        LinearLayout left = sc.left.body;
+        LinearLayout right = sc.right.body;
 
-        status = new TextView(this);
-        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        root.addView(status);
-
+        // ---- left: filter + list ----
+        left.addView(Ui.label(this, "筛选"));
         search = new EditText(this);
         search.setHint("搜索应用名或包名");
         search.setSingleLine(true);
-        root.addView(search);
+        search.setTextSize(20);
+        search.setTextColor(Ui.TEXT);
+        search.setHintTextColor(Ui.TEXT_DIM);
+        search.setBackground(Ui.round(this, Ui.SURFACE_ALT, 10, Ui.LINE));
+        int sp = Ui.dp(this, 12);
+        search.setPadding(sp, sp, sp, sp);
+        left.addView(search);
         search.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int a, int b, int c) {
@@ -96,6 +91,8 @@ public class AppManagerActivity extends Activity {
 
         userOnly = new CheckBox(this);
         userOnly.setText("只看用户应用（可卸载的）");
+        userOnly.setTextSize(20);
+        userOnly.setTextColor(Ui.TEXT);
         userOnly.setChecked(false);
         userOnly.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -103,20 +100,25 @@ public class AppManagerActivity extends Activity {
                 render();
             }
         });
-        root.addView(userOnly);
+        left.addView(userOnly);
+
+        status = Ui.dim(this, "");
+        left.addView(status);
+        left.addView(Ui.gap(this, 6));
 
         listBox = new LinearLayout(this);
         listBox.setOrientation(LinearLayout.VERTICAL);
-        root.addView(listBox);
+        left.addView(listBox);
 
-        TextView note = new TextView(this);
-        note.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        note.setTextColor(Color.GRAY);
-        note.setPadding(0, dp(16), 0, 0);
-        note.setText("「禁用」需要系统签名权限（CHANGE_COMPONENT_ENABLED_STATE 为 signature|privileged），\n"
-                + "普通应用做不到，点它会给出可用 adb 执行的命令。\n"
-                + "「从桌面移除」只删除车机商店记录里该应用的条目，不卸载应用。");
-        root.addView(note);
+        // ---- right: help ----
+        right.addView(Ui.label(this, "说明"));
+        LinearLayout note = Ui.card(this);
+        note.addView(Ui.dim(this,
+                "「禁用」需要系统签名权限（CHANGE_COMPONENT_ENABLED_STATE 为 "
+                        + "signature|privileged），普通应用做不到，点它会给出可用 adb 执行的命令。\n\n"
+                        + "「从桌面移除」只删除车机商店记录里该应用的条目，不卸载应用。\n\n"
+                        + "点列表中的应用可进行：卸载 / 禁用 / 应用详情 / 从桌面记录移除 / 复制 adb 命令。"));
+        right.addView(note);
 
         load();
     }
@@ -190,7 +192,7 @@ public class AppManagerActivity extends Activity {
                 break;
             }
             shown++;
-            listBox.addView(item(ai, label));
+            Ui.addRow(listBox, item(ai, label));
         }
         status.setText("共 " + snapshot.size() + " 个应用，显示 " + shown + " 个");
     }
@@ -204,18 +206,14 @@ public class AppManagerActivity extends Activity {
             // ignore
         }
         String state = ai.enabled ? "" : "  [已禁用]";
-        final Button b = new Button(this);
-        b.setAllCaps(false);
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        b.setText(label + (isSystem(ai) ? "  [系统]" : "") + state
-                + "\n" + ai.packageName + "  " + version);
-        b.setOnClickListener(new View.OnClickListener() {
+        String text = label + (isSystem(ai) ? "  [系统]" : "") + state
+                + "\n" + ai.packageName + "  " + version;
+        return Ui.row(this, text, new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 actions(ai);
             }
         });
-        return b;
     }
 
     // --------------------------------------------------------------- actions
@@ -358,10 +356,5 @@ public class AppManagerActivity extends Activity {
 
     private void toast(String s) {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show();
-    }
-
-    private int dp(int v) {
-        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v,
-                getResources().getDisplayMetrics()));
     }
 }

@@ -5,18 +5,12 @@ import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.List;
@@ -31,11 +25,16 @@ import java.util.List;
  *       protected by a normal-level permission.</li>
  * </ul>
  * Nothing here escalates privileges or modifies system properties.
+ *
+ * <p>UI: left column = actions, right column = run log.
  */
 public class MainActivity extends Activity {
 
     private static final String ENG_PKG = "com.desaysv.engmode";
     private static final String PLUGIN_PKG = "com.desaysv.engmode.custom";
+
+    /** Category used when auto-registering the assistant itself. */
+    private static final String SELF_CATEGORY = "常用工具";
 
     /** name -> class, probed against ENG_PKG. */
     private static final String[][] PAGES = {
@@ -85,54 +84,47 @@ public class MainActivity extends Activity {
             {"PluginStubActivityS0 (插件占位)", "com.desaysv.engmode.stub.PluginStubActivityS0"},
     };
 
-    private LinearLayout root;
     private TextView log;
+    /** Holds the buttons created by ② 页面扫描, under the fixed menu. */
+    private LinearLayout scanBox;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTitle(getString(R.string.app_name));
 
-        ScrollView scroll = new ScrollView(this);
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        root.setPadding(pad, pad, pad, pad);
-        scroll.addView(root, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        setContentView(scroll);
+        Ui.Screen sc = Ui.createHome(this, "领克助手 · 车机助手", 1f, 1.25f);
+        setContentView(sc.root);
 
-        header(getString(R.string.app_name) + "  ·  Geely / Lynk & Co 车机助手");
+        LinearLayout left = sc.left.body;
+        LinearLayout right = sc.right.body;
 
-        addButton("① 进入工程模式", new View.OnClickListener() {
+        left.addView(Ui.label(this, "功能"));
+
+        menu(left, "① 进入工程模式", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 openEngineeringMode();
             }
         });
-
-        addButton("② 扫描工程模式页面 (exported)", new View.OnClickListener() {
+        menu(left, "② 扫描工程模式页面 (exported)", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 scanPages();
             }
         });
-
-        addButton("③ 桌面应用列表管理", new View.OnClickListener() {
+        menu(left, "③ 桌面应用列表管理", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, AppListActivity.class));
             }
         });
-
-        addButton("④ 设备信息", new View.OnClickListener() {
+        menu(left, "④ 设备信息", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, DeviceInfoActivity.class));
             }
         });
-
-        addButton("⑤ 打开系统设置", new View.OnClickListener() {
+        menu(left, "⑤ 打开系统设置", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 try {
@@ -143,32 +135,66 @@ public class MainActivity extends Activity {
                 }
             }
         });
-
-        addButton("⑥ 安装 APK", new View.OnClickListener() {
+        menu(left, "⑥ 安装 APK", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, ApkInstallActivity.class));
             }
         });
-
-        addButton("⑦ 应用管理（卸载 / 禁用）", new View.OnClickListener() {
+        menu(left, "⑦ 应用管理（卸载 / 禁用）", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, AppManagerActivity.class));
             }
         });
 
-        log = new TextView(this);
-        log.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        log.setTextIsSelectable(true);
-        log.setPadding(0, dp(12), 0, 0);
-        root.addView(log);
+        scanBox = new LinearLayout(this);
+        scanBox.setOrientation(LinearLayout.VERTICAL);
+        left.addView(scanBox);
+
+        right.addView(Ui.label(this, "运行日志"));
+        LinearLayout logCard = Ui.card(this);
+        log = Ui.mono(this);
+        logCard.addView(log);
+        right.addView(logCard);
 
         log.append("只有 exported=true 的页面才能被普通应用拉起；\n"
                 + "工程模式内部页面默认不导出，需从工程模式菜单进入。\n");
+
+        autoRegisterSelf();
     }
 
     // ---------------------------------------------------------------- actions
+
+    private void menu(LinearLayout parent, String text, View.OnClickListener l) {
+        Ui.addRow(parent, Ui.row(this, text, l));
+    }
+
+    /**
+     * 运行后自动把「领克助手」自己写进桌面「我的应用」。
+     *
+     * <p>车机桌面是白名单驱动的，新装的包默认不显示；这里在普通权限范围内
+     * 幂等地补一条 t_app_info 记录：已有记录就跳过（避免重复插入），
+     * 正常情况下重启车机后助手自身即出现在桌面。
+     */
+    private void autoRegisterSelf() {
+        String self = getPackageName();
+        if (!AppStoreBridge.hasPermission(this)) {
+            say("自动写入桌面：缺少 " + AppStoreBridge.PERMISSION + " 权限，跳过");
+            return;
+        }
+        if (AppStoreBridge.isWritten(this, self)) {
+            say("自动写入桌面：已有记录，跳过");
+            return;
+        }
+        String err = AppStoreBridge.add(this, self, getString(R.string.app_name), SELF_CATEGORY);
+        if (err == null) {
+            say("自动写入桌面：已加入「我的应用」，重启车机后可见");
+            toast("已自动加入桌面「我的应用」，重启车机后可见");
+        } else {
+            say("自动写入桌面：失败 " + err);
+        }
+    }
 
     private void openEngineeringMode() {
         clear();
@@ -210,6 +236,10 @@ public class MainActivity extends Activity {
 
     private void scanPages() {
         clear();
+        scanBox.removeAllViews();
+        scanBox.addView(Ui.gap(this, 8));
+        scanBox.addView(Ui.label(this, "可直达页面 (" + PAGES.length + " 项)"));
+
         say("== 页面可达性扫描 (" + PAGES.length + " 项) ==");
         say("exported=yes 才可能被普通应用直接拉起\n");
         PackageManager pm = getPackageManager();
@@ -231,12 +261,12 @@ public class MainActivity extends Activity {
             say((canStart ? "✓ " : "· ") + page[0] + "  [" + state + "]");
             if (canStart) {
                 final String label = page[0];
-                addButton("打开: " + label, new View.OnClickListener() {
+                Ui.addRow(scanBox, Ui.primary(this, "打开: " + label, new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         tryStart(cn, label);
                     }
-                });
+                }));
             }
         }
         say("\n可直接拉起: " + exported + " / " + PAGES.length);
@@ -269,25 +299,6 @@ public class MainActivity extends Activity {
         return false;
     }
 
-    private void header(String s) {
-        TextView tv = new TextView(this);
-        tv.setText(s);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        tv.setPadding(0, 0, 0, dp(8));
-        root.addView(tv);
-    }
-
-    private void addButton(String text, View.OnClickListener l) {
-        Button b = new Button(this);
-        b.setText(text);
-        b.setAllCaps(false);
-        b.setOnClickListener(l);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(6);
-        root.addView(b, lp);
-    }
-
     private void clear() {
         log.setText("");
     }
@@ -298,10 +309,5 @@ public class MainActivity extends Activity {
 
     private void toast(String s) {
         android.widget.Toast.makeText(this, s, android.widget.Toast.LENGTH_LONG).show();
-    }
-
-    private int dp(int v) {
-        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v,
-                getResources().getDisplayMetrics()));
     }
 }
